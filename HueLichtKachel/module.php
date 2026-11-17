@@ -79,6 +79,14 @@ class HueLichtKachel extends IPSModuleStrict
         }
         $this->WriteAttributeString('Watched', json_encode($watch));
         $this->SetStatus(IS_ACTIVE);
+        if ($this->ReadAttributeString('ApiUser') === '' && IPS_GetKernelRunlevel() === KR_READY) {
+            // Zugang von einer schon gekoppelten Instanz an derselben Bridge übernehmen (sonst je Instanz Link-Taste)
+            foreach ($this->Siblings() as $sib) {
+                if (@HLK_ShareApiUser($sib, $this->InstanceID)) {
+                    break;
+                }
+            }
+        }
         $paired = $this->ReadAttributeString('ApiUser') !== '';
         $this->SetTimerInterval('SceneRefresh', $paired ? 15 * 60 * 1000 : 0);
         if ($paired && IPS_GetKernelRunlevel() === KR_READY) {
@@ -101,11 +109,59 @@ class HueLichtKachel extends IPSModuleStrict
             $err = (string) ($r[0]['error']['description'] ?? 'Bridge nicht erreichbar');
             return 'Nicht verbunden: ' . $err . ' (Link-Taste der Bridge drücken und innerhalb von 30 s erneut versuchen)';
         }
-        $this->WriteAttributeString('ApiUser', $user);
+        $this->AdoptApiUser($user);
+        $k = 0;
+        foreach ($this->Siblings() as $sib) {
+            $k += $this->ShareApiUser($sib) ? 1 : 0;
+        }
+        $n = count((array) json_decode($this->ReadAttributeString('Scenes'), true));
+        return 'Verbunden, ' . $n . ' Szenen gefunden.' . ($k > 0 ? ' Zugang an ' . $k . ' weitere Kachel(n) weitergegeben.' : '');
+    }
+
+    /** Eigenen Bridge-Zugang an eine andere Hue Licht Kachel an derselben Bridge weitergeben (der Zugang wird nicht ausgegeben). */
+    public function ShareApiUser(int $Target): bool
+    {
+        $user = $this->ReadAttributeString('ApiUser');
+        if ($user === '' || $Target === $this->InstanceID || !in_array($Target, $this->Siblings(), true)) {
+            return false;
+        }
+        HLK_AdoptApiUser($Target, $user);
+        return true;
+    }
+
+    /** Bridge-Zugang übernehmen (von Pair oder einer anderen Kachel). */
+    public function AdoptApiUser(string $User): void
+    {
+        if ($User === '') {
+            return;
+        }
+        $this->WriteAttributeString('ApiUser', $User);
         $this->SetTimerInterval('SceneRefresh', 15 * 60 * 1000);
-        $n = $this->ReloadScenes();
+        $this->ReloadScenes();
         $this->Push();
-        return 'Verbunden, ' . $n . ' Szenen gefunden.';
+    }
+
+    /** Andere Instanzen dieses Moduls, deren Hue-Instanz an derselben Bridge hängt. */
+    private function Siblings(): array
+    {
+        $bridge = $this->BridgeID();
+        if ($bridge <= 0) {
+            return [];
+        }
+        $r = [];
+        foreach (IPS_GetInstanceListByModuleID(IPS_GetInstance($this->InstanceID)['ModuleInfo']['ModuleID']) as $i) {
+            $h = (int) IPS_GetProperty($i, 'HueID');
+            if ($i !== $this->InstanceID && $h > 0 && IPS_InstanceExists($h) && IPS_GetInstance($h)['ConnectionID'] === $bridge) {
+                $r[] = $i;
+            }
+        }
+        return $r;
+    }
+
+    private function BridgeID(): int
+    {
+        $hid = $this->ReadPropertyInteger('HueID');
+        return $this->HueOk($hid) ? IPS_GetInstance($hid)['ConnectionID'] : 0;
     }
 
     /** Szenen mit dieser Lampe (bzw. dieser Gruppe) samt Lichtzustand der Lampe neu lesen; liefert die Anzahl. */
@@ -296,8 +352,7 @@ class HueLichtKachel extends IPSModuleStrict
     /** Aufruf der Hue-API (v1). $noUser: ohne Benutzer (Anmeldung). */
     private function Api(string $method, string $path, array $body = [], bool $noUser = false): mixed
     {
-        $hid = $this->ReadPropertyInteger('HueID');
-        $bridge = $this->HueOk($hid) ? IPS_GetInstance($hid)['ConnectionID'] : 0;
+        $bridge = $this->BridgeID();
         $host = $bridge > 0 ? (string) @IPS_GetProperty($bridge, 'Host') : '';
         $user = $this->ReadAttributeString('ApiUser');
         if ($host === '' || (!$noUser && $user === '')) {

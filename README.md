@@ -34,7 +34,7 @@ Fehlt einer Lampe eine Fähigkeit (z. B. reine Weiß-Lampe ohne Farbe), blendet 
 
 Das Hue-Modul gibt seinen Bridge-Zugang nicht heraus und kann Szenen weder im Detail lesen noch speichern. Die Kachel legt deshalb
 einen eigenen Zugang an (CLIP v1): Link-Taste auf der Bridge drücken, dann innerhalb von 30 s in der Instanz „Mit Bridge verbinden“.
-Der Zugang liegt nur im Attribut der Instanz. Szenen werden alle 15 min und nach jedem Speichern neu gelesen.
+Der Zugang liegt nur im Attribut der Instanz. Ab 0.4 übernehmen weitere Kacheln an derselben Bridge ihn automatisch von einer gekoppelten Kachel (Link-Taste nur einmal). Szenen werden alle 15 min und nach jedem Speichern neu gelesen.
 
 ## Eigenschaften
 
