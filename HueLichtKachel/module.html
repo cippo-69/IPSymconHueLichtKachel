@@ -83,6 +83,10 @@ button { font: inherit; }
 .nw input { flex: 1; min-width: 0; font: inherit; font-size: 16px; min-height: 40px; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--hl-line); background: var(--hl-bg2); color: var(--hl-fg); }
 .nw input:focus { outline: none; border-color: var(--hl-accent); }
 
+/* Regler-Knopf im Fenster: schließt es (zurück zur Seite mit dem Lampen-Button) */
+.ib { width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--hl-accent); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0; flex: none; touch-action: manipulation; }
+#hl .ib, #hl .ib svg { color: var(--hl-on); }
+.ib svg { width: 20px; height: 20px; }
 /* kleine Kachel: Regler-Knopf, öffnet das Einstellungsfenster */
 body.knob #hl { padding: 38px 8px 6px; align-items: center; justify-content: center; gap: 4px; overflow: hidden; }
 .knobbtn { width: min(64px, 52vh); height: min(64px, 52vh); border-radius: 50%; border: 0; padding: 0; cursor: pointer; display: grid; place-items: center; background: var(--hl-bg2);
@@ -180,7 +184,9 @@ function render() {
   var h = '<div class="head"><div class="lamp' + (on ? '' : ' off') + '"></div><div class="t"><b>' + (on ? 'An' : 'Aus') + (on && s.hasBri ? ' · ' + pct(s.bri) + ' %' : '') + '</b>'
     + '<span class="sub">' + (on ? (s.mode === 1 || !s.hasColor ? (s.kelvin ? s.kelvin + ' K' : '') : 'Farbe') + (s.effect === 'colorloop' ? ' · Farbschleife' : '') : esc(s.name)) + '</span>'
     + (s.reachable ? '' : '<span class="badge">nicht erreichbar</span>') + '</div>'
-    + '<button class="tg' + (s.on ? ' on' : '') + '" id="pw" role="switch" aria-checked="' + !!s.on + '" aria-label="Ein/Aus"></button></div>';
+    + '<button class="tg' + (s.on ? ' on' : '') + '" id="pw" role="switch" aria-checked="' + !!s.on + '" aria-label="Ein/Aus"></button>'
+    + (s.backId > 0 && typeof openObject === 'function' ? '<button class="ib" id="back" aria-label="Schließen, zurück zur Seite" title="Schließen">' + TUNE + '</button>' : '')
+    + '</div>';
 
   h += sceneCard(s);
   if (s.hasBri) {
@@ -309,6 +315,8 @@ function bind() {
   var s = HL.s;
   bindScenes();
   document.getElementById('pw').onclick = function () { send('State', !s.on); };
+  var bk = document.getElementById('back');
+  if (bk) bk.onclick = function () { try { openObject(s.backId); } catch (e) { /* nichts */ } };
   slider('bri', function (v) { document.getElementById('vb').textContent = pct(v) + ' %'; }, function (v) { send('Brightness', v); });
   slider('kel', function (v, r) { document.getElementById('vk').textContent = v + ' K'; r.style.setProperty('--th', kelvinRgb(v)); }, function (v) { send('Kelvin', v); });
   var color = function () { send('Color', JSON.stringify({ h: HL.h, s: HL.sat })); };

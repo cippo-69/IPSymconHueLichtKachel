@@ -9,7 +9,7 @@ Bedienkachel für die Symcon-Kachel-Visualisierung (HTML-SDK) zu einer Leuchte o
   Tippen öffnet per `openObject` das **Einstellungsfenster** (Eigenschaft „Einstellungsfenster“: eine Kategorie mit
   einem Link auf diese Instanz). Ohne Kategorie öffnet es das Visu-Fenster der Hue-Instanz.
 - **Einstellungsfenster** (Kachel ab 260 px Höhe): alle Einstellungen der Lampe
-  - Ein/Aus, Erreichbarkeit
+  - Ein/Aus, Erreichbarkeit; Regler-Symbol oben rechts schließt das Fenster (zurück zur Seite, in der die Einstellungskategorie liegt)
   - Helligkeit (Regler mit Verlauf in der Lampenfarbe)
   - Weiß: Farbtemperatur in Kelvin (Bereich aus dem Profil der Kelvin-Variable) und Vorgaben Kerze … Tageslicht
   - Farbe: Farbton, Sättigung und zwölf Farbvorgaben; die Helligkeit bleibt dabei erhalten

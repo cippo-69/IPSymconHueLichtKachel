@@ -408,6 +408,17 @@ class HueLichtKachel extends IPSModuleStrict
 
     /* ---------- Hilfen ---------- */
 
+    /** Zurück-Ziel des Fensters: Seite, in der die Einstellungskategorie liegt (wie bei der Heizung Kachel). */
+    private function BackID(): int
+    {
+        $d = $this->ReadPropertyInteger('DetailID');
+        if ($d <= 0 || !IPS_ObjectExists($d)) {
+            return 0;
+        }
+        $up = IPS_GetParent($d);
+        return ($up > 0 && IPS_GetObject($up)['ObjectType'] === 0) ? $up : 0;
+    }
+
     private function HueOk(int $id): bool
     {
         return $id > 0 && IPS_InstanceExists($id) && IPS_GetInstance($id)['ModuleInfo']['ModuleID'] === self::HUE_GUID;
@@ -486,6 +497,7 @@ class HueLichtKachel extends IPSModuleStrict
             'name'     => $this->HueOk($hid) ? IPS_GetName($hid) : '',
             'hueId'    => $hid,
             'detailId' => $this->ReadPropertyInteger('DetailID'),
+            'backId'   => $this->BackID(),
             'effect'   => $this->ReadAttributeString('Effect')
         ];
         if (!$s['ok']) {
