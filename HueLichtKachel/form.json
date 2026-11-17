@@ -3,6 +3,8 @@
         { "type": "SelectInstance", "name": "HueID", "caption": "Hue-Leuchte oder -Gruppe (Modul Philips HUE)", "validModules": ["{83354C26-2732-427C-A781-B3F5CDF758B1}"], "width": "600px" },
         { "type": "SelectObject", "name": "DetailID", "caption": "Einstellungsfenster (Kategorie mit Link auf diese Instanz)", "width": "600px" },
         { "type": "Label", "caption": "Die kleine Kachel (unter 260 px Höhe) ist ein Regler-Knopf und öffnet das Einstellungsfenster. Ohne Kategorie öffnet sie das Visu-Fenster der Hue-Instanz." },
+        { "type": "List", "name": "ExtraHue", "caption": "Weitere Lampen (werden mitgeschaltet, z. B. zweite Deckenlampe)", "add": true, "delete": true, "rowCount": 3,
+          "columns": [ { "caption": "Hue-Leuchte", "name": "InstanceID", "width": "auto", "add": 0, "edit": { "type": "SelectInstance", "validModules": ["{83354C26-2732-427C-A781-B3F5CDF758B1}"] } } ] },
         { "type": "SelectVariable", "name": "SwitchID", "caption": "Ein/Aus über andere Variable (optional, z. B. Fade-Schalter)", "width": "600px" },
         { "type": "Select", "name": "SceneScope", "caption": "Szene abrufen", "options": [
             { "caption": "nur diese Lampe (Zustand aus der Szene)", "value": 0 },

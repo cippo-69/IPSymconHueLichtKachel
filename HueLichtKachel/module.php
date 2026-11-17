@@ -41,6 +41,8 @@ class HueLichtKachel extends IPSModuleStrict
         $this->RegisterTimer('SceneRefresh', 0, 'HLK_ReloadScenes($_IPS[\'TARGET\']);');
         // Stromkreise (ab 0.5): Liste [{Variable, Lights}] – Schaltaktor und davon versorgte Hue-Lampen-IDs (leer = alle)
         $this->RegisterPropertyString('Power', '[]');
+        // Weitere Lampen (ab 0.6): [{InstanceID}] – bekommen dieselben Befehle wie die Hauptlampe (z. B. Decke 1 + Decke 2)
+        $this->RegisterPropertyString('ExtraHue', '[]');
         $this->RegisterAttributeString('Pending', '');
         $this->RegisterAttributeString('GroupLights', '[]');
         $this->RegisterTimer('PowerWait', 0, 'HLK_PowerWait($_IPS[\'TARGET\']);');
@@ -194,8 +196,14 @@ class HueLichtKachel extends IPSModuleStrict
             $d = $this->Api('GET', 'scenes/' . $id);
             $ls = (array) ($d['lightstates'] ?? []);
             $st = $type === 'groups' ? (reset($ls) ?: []) : ($ls[$dev] ?? []);
+            $states = [];
+            foreach ($this->OwnLights() as $l) {
+                if (isset($ls[$l])) {
+                    $states[$l] = $ls[$l];
+                }
+            }
             $list[] = ['id' => (string) $id, 'name' => (string) $sc['name'], 'group' => (string) ($sc['group'] ?? ''),
-                'state' => $st, 'updated' => (string) ($sc['lastupdated'] ?? '')];
+                'state' => $st, 'states' => $states, 'updated' => (string) ($sc['lastupdated'] ?? '')];
         }
         usort($list, fn ($a, $b) => strnatcasecmp($a['name'], $b['name']));
         $this->WriteAttributeString('Scenes', json_encode($list));
@@ -224,8 +232,13 @@ class HueLichtKachel extends IPSModuleStrict
             $grp = $type === 'groups' ? $dev : $sc['group'];
             $r = $this->Api('PUT', 'groups/' . $grp . '/action', ['scene' => $id]);
         } else {
-            $st = array_intersect_key((array) $sc['state'], array_flip(['on', 'bri', 'xy', 'ct', 'hue', 'sat', 'effect', 'transitiontime']));
-            $r = $this->Api('PUT', 'lights/' . $dev . '/state', $st + ['transitiontime' => 4]);
+            // Haupt- und weitere Lampen: jeweils ihr eigener Zustand aus der Szene
+            $states = (array) ($sc['states'] ?? []) ?: [$dev => $sc['state']];
+            $r = [];
+            foreach ($states as $l => $s0) {
+                $st = array_intersect_key((array) $s0, array_flip(['on', 'bri', 'xy', 'ct', 'hue', 'sat', 'effect', 'transitiontime']));
+                $r[$l] = $this->Api('PUT', 'lights/' . $l . '/state', $st + ['transitiontime' => 4]);
+            }
         }
         $this->SendDebug('Szene abrufen', $sc['name'] . ' ' . json_encode($r), 0);
         $this->WriteAttributeString('SceneSel', $id);
@@ -248,7 +261,15 @@ class HueLichtKachel extends IPSModuleStrict
         if ($type === 'groups') {
             $r = $this->Api('PUT', 'scenes/' . $id, ['storelightstate' => true]);   // Gruppe: alle Lampen übernehmen
         } else {
-            $r = $this->Api('PUT', 'scenes/' . $id . '/lightstates/' . $dev, $this->CurrentLightState($dev));
+            foreach ($this->OwnLights() as $l) {
+                if (!isset($sc['states'][$l]) && $l !== $dev) {
+                    continue;   // Lampe gehört nicht zur Szene
+                }
+                $r = $this->Api('PUT', 'scenes/' . $id . '/lightstates/' . $l, $this->CurrentLightState($l));
+                if (!(is_array($r) && isset($r[0]['success']))) {
+                    break;
+                }
+            }
         }
         $ok = is_array($r) && isset($r[0]['success']);
         $this->WriteAttributeString('SceneMsg', $ok ? '„' . $sc['name'] . '“ gespeichert' : 'Speichern fehlgeschlagen: ' . (string) ($r[0]['error']['description'] ?? 'keine Antwort'));
@@ -460,7 +481,7 @@ class HueLichtKachel extends IPSModuleStrict
     {
         [$type, $dev] = $this->HueDevice();
         if ($type !== 'groups') {
-            return [$dev];
+            return $this->OwnLights();
         }
         $cache = json_decode($this->ReadAttributeString('GroupLights'), true);
         if (!is_array($cache) || $cache === []) {
@@ -551,12 +572,73 @@ class HueLichtKachel extends IPSModuleStrict
 
     private function Execute(string $Ident, mixed $Value): void
     {
-        $hid = $this->ReadPropertyInteger('HueID');
-        $v = $this->Vars();
+        // weitere Lampen (ab 0.6) bekommen dieselben Lichtbefehle wie die Hauptlampe
+        if (in_array($Ident, ['State', 'Brightness', 'Kelvin', 'Color', 'Effect', 'Alert'], true)) {
+            foreach ($this->ExtraIDs() as $x) {
+                $this->ExecuteOn($x, $Ident, $Value, false);
+            }
+            $this->ExecuteOn($this->ReadPropertyInteger('HueID'), $Ident, $Value, true);
+            $this->Push();
+            return;
+        }
+        switch ($Ident) {
+            case 'Scene':
+                $this->SceneRecall((string) $Value);
+                break;
+            case 'SceneSave':
+                $this->SceneSave((string) $Value);
+                break;
+            case 'SceneNew':
+                $this->SceneNew((string) $Value);
+                break;
+            case 'ScenesReload':
+                $this->ReloadScenes();
+                break;
+            case 'Refresh':
+                break;
+            default:
+                throw new Exception('Unbekannte Aktion: ' . $Ident);
+        }
+        $this->Push();
+    }
+
+    /** Weitere Hue-Lampen, die mitgeschaltet werden (Liste ExtraHue). */
+    private function ExtraIDs(): array
+    {
+        $r = [];
+        foreach ((array) json_decode($this->ReadPropertyString('ExtraHue'), true) as $e) {
+            $id = (int) ($e['InstanceID'] ?? 0);
+            if ($this->HueOk($id) && $id !== $this->ReadPropertyInteger('HueID')) {
+                $r[] = $id;
+            }
+        }
+        return $r;
+    }
+
+    /** Hue-Lampen-IDs (Bridge) von Haupt- und weiteren Lampen; Gruppe: leer */
+    private function OwnLights(): array
+    {
+        [$type, $dev] = $this->HueDevice();
+        if ($type === 'groups') {
+            return [];
+        }
+        $r = [$dev];
+        foreach ($this->ExtraIDs() as $x) {
+            if ((string) IPS_GetProperty($x, 'DeviceType') !== 'groups') {
+                $r[] = (string) IPS_GetProperty($x, 'HUEDeviceID');
+            }
+        }
+        return array_values(array_unique($r));
+    }
+
+    /** Lichtbefehl an eine Hue-Instanz; $main: Hauptlampe (Schalter-Variable, Effekt merken) */
+    private function ExecuteOn(int $hid, string $Ident, mixed $Value, bool $main): void
+    {
+        $v = $this->VarsOf($hid);
         switch ($Ident) {
             case 'State':
                 $sw = $this->ReadPropertyInteger('SwitchID');
-                if ($sw > 0 && IPS_VariableExists($sw)) {
+                if ($main && $sw > 0 && IPS_VariableExists($sw)) {
                     RequestAction($sw, (bool) $Value);
                 } elseif (isset($v['state'])) {
                     RequestAction($v['state'], (bool) $Value);
@@ -594,31 +676,16 @@ class HueLichtKachel extends IPSModuleStrict
             case 'Effect':
                 $e = (string) $Value === 'colorloop' ? 'colorloop' : 'none';
                 @PHUE_EffectSet($hid, $e);
-                $this->WriteAttributeString('Effect', $e);
+                if ($main) {
+                    $this->WriteAttributeString('Effect', $e);
+                }
                 break;
             case 'Alert':
                 if (in_array((string) $Value, ['select', 'lselect', 'none'], true)) {
                     @PHUE_AlertSet($hid, (string) $Value);
                 }
                 break;
-            case 'Scene':
-                $this->SceneRecall((string) $Value);
-                break;
-            case 'SceneSave':
-                $this->SceneSave((string) $Value);
-                break;
-            case 'SceneNew':
-                $this->SceneNew((string) $Value);
-                break;
-            case 'ScenesReload':
-                $this->ReloadScenes();
-                break;
-            case 'Refresh':
-                break;
-            default:
-                throw new Exception('Unbekannte Aktion: ' . $Ident);
         }
-        $this->Push();
     }
 
     /* ---------- Hilfen ---------- */
@@ -642,7 +709,11 @@ class HueLichtKachel extends IPSModuleStrict
     /** Variablen der Hue-Instanz nach Ident (nur vorhandene). */
     private function Vars(): array
     {
-        $hid = $this->ReadPropertyInteger('HueID');
+        return $this->VarsOf($this->ReadPropertyInteger('HueID'));
+    }
+
+    private function VarsOf(int $hid): array
+    {
         $r = [];
         if (!$this->HueOk($hid)) {
             return $r;

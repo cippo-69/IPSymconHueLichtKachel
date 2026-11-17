@@ -59,3 +59,9 @@ In der Liste „Stromkreise“ trägt man je Aktor die Schaltvariable und die da
 - **Ein** und jede Einstellung (Helligkeit, Farbe, Szene, Effekt) bei ausgeschaltetem Strom: Strom ein, Befehl merken und ausführen,
   sobald die Lampen wieder erreichbar sind (frühestens nach 4 s, höchstens 25 s; „reachable“ der Bridge hinkt beim Abschalten nach). Der Befehl wird nach 3 s einmal wiederholt.
 - Anzeige: ohne Strom gilt die Lampe als aus (kein „nicht erreichbar“); Szenen lassen sich dann nicht speichern.
+
+## Weitere Lampen (ab 0.6)
+
+In der Liste „Weitere Lampen“ lassen sich zusätzliche Hue-Leuchten eintragen, die jeden Lichtbefehl (Ein/Aus, Helligkeit, Weiß, Farbe,
+Effekte) mitbekommen, z. B. zwei Deckenlampen ohne eigene Hue-Gruppe. Szenen: Abrufen setzt jede Lampe auf ihren eigenen Zustand
+aus der Szene, Speichern schreibt den aktuellen Zustand jeder Lampe. Angezeigt werden die Werte der Hauptlampe.
