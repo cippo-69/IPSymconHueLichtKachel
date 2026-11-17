@@ -8,6 +8,12 @@
             { "caption": "nur diese Lampe (Zustand aus der Szene)", "value": 0 },
             { "caption": "ganze Szene (alle Lampen des Raums)", "value": 1 }
         ] },
+        { "type": "Label", "caption": "Stromkreise: Hue-Lampen, die über einen Aktor (KNX, Z-Wave …) spannungsseitig geschaltet werden. Ein = Strom ein, Aus = Strom aus; Einstellungen bei ausgeschaltetem Strom schalten ihn ein und werden ausgeführt, sobald die Lampen wieder erreichbar sind." },
+        { "type": "List", "name": "Power", "caption": "Stromkreise", "add": true, "delete": true, "rowCount": 4,
+          "columns": [
+            { "caption": "Schaltvariable (Ein/Aus)", "name": "Variable", "width": "420px", "add": 0, "edit": { "type": "SelectVariable" } },
+            { "caption": "Hue-Lampen-IDs (Komma, leer = alle)", "name": "Lights", "width": "auto", "add": "", "edit": { "type": "ValidationTextBox" } }
+          ] },
         { "type": "Label", "caption": "Farben: zentral im Modul „Visu Design“ (Farbkonzept W5x)." }
     ],
     "actions": [

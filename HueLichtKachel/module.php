@@ -39,6 +39,11 @@ class HueLichtKachel extends IPSModuleStrict
         $this->RegisterAttributeString('SceneSel', '');
         $this->RegisterAttributeString('SceneMsg', '');
         $this->RegisterTimer('SceneRefresh', 0, 'HLK_ReloadScenes($_IPS[\'TARGET\']);');
+        // Stromkreise (ab 0.5): Liste [{Variable, Lights}] – Schaltaktor und davon versorgte Hue-Lampen-IDs (leer = alle)
+        $this->RegisterPropertyString('Power', '[]');
+        $this->RegisterAttributeString('Pending', '');
+        $this->RegisterAttributeString('GroupLights', '[]');
+        $this->RegisterTimer('PowerWait', 0, 'HLK_PowerWait($_IPS[\'TARGET\']);');
         $this->SetVisualizationType(1);
     }
 
@@ -72,6 +77,11 @@ class HueLichtKachel extends IPSModuleStrict
         if ($sw > 0 && IPS_VariableExists($sw)) {
             $vars['switch'] = $sw;
             $this->RegisterReference($sw);
+        }
+        $this->WriteAttributeString('GroupLights', '[]');
+        foreach ($this->Circuits() as $i => $c) {
+            $vars['power' . $i] = $c['var'];
+            $this->RegisterReference($c['var']);
         }
         foreach ($vars as $vid) {
             $this->RegisterMessage($vid, VM_UPDATE);
@@ -228,6 +238,10 @@ class HueLichtKachel extends IPSModuleStrict
     {
         $sc = $this->SceneById($id);
         if ($sc === null) {
+            return;
+        }
+        if ($this->CircuitsOff() !== []) {
+            $this->WriteAttributeString('SceneMsg', 'Nicht gespeichert: Strom der Lampe ist aus');
             return;
         }
         [$type, $dev] = $this->HueDevice();
@@ -388,10 +402,130 @@ class HueLichtKachel extends IPSModuleStrict
 
     public function RequestAction(string $Ident, mixed $Value): void
     {
-        $hid = $this->ReadPropertyInteger('HueID');
-        if (!$this->HueOk($hid)) {
+        if (!$this->HueOk($this->ReadPropertyInteger('HueID'))) {
             return;
         }
+        // Stromkreise (ab 0.5): Lampen, die über einen Aktor (KNX, Z-Wave …) spannungsseitig geschaltet werden
+        if ($this->Circuits() !== [] && in_array($Ident, ['State', 'Brightness', 'Kelvin', 'Color', 'Effect', 'Alert', 'Scene'], true)) {
+            if ($Ident === 'State' && !(bool) $Value) {
+                $this->PowerOff();
+                $this->Push();
+                return;
+            }
+            $off = $this->CircuitsOff();
+            if ($off !== []) {
+                // Strom einschalten, Befehl merken und ausführen, sobald die Lampen wieder an der Bridge erreichbar sind
+                $this->WriteAttributeString('Pending', json_encode(['ident' => $Ident, 'value' => $Value, 'since' => time(),
+                    'lights' => array_values(array_unique(array_merge(...array_column($off, 'lights'))))]));
+                foreach ($off as $c) {
+                    RequestAction($c['var'], true);
+                }
+                $this->SetTimerInterval('PowerWait', 1000);
+                $this->Push();
+                return;
+            }
+        }
+        $this->Execute($Ident, $Value);
+    }
+
+    /* ---------- Stromkreise ---------- */
+
+    /** Konfigurierte Stromkreise: [['var' => Schaltvariable, 'lights' => [Hue-Lampen-IDs]]]; leere Lampenliste = alle Lampen des Geräts. */
+    private function Circuits(): array
+    {
+        $r = [];
+        foreach ((array) json_decode($this->ReadPropertyString('Power'), true) as $p) {
+            $var = (int) ($p['Variable'] ?? 0);
+            if ($var <= 0 || !IPS_VariableExists($var)) {
+                continue;
+            }
+            $lights = array_values(array_filter(array_map('trim', explode(',', (string) ($p['Lights'] ?? ''))), 'strlen'));
+            $r[] = ['var' => $var, 'lights' => $lights !== [] ? $lights : $this->DeviceLights()];
+        }
+        return $r;
+    }
+
+    private function CircuitsOff(): array
+    {
+        return array_values(array_filter($this->Circuits(), fn ($c) => !(bool) GetValue($c['var'])));
+    }
+
+    /** Hue-Lampen-IDs des Geräts (Lampe: die eigene, Gruppe: laut Bridge, zwischengespeichert). */
+    private function DeviceLights(): array
+    {
+        [$type, $dev] = $this->HueDevice();
+        if ($type !== 'groups') {
+            return [$dev];
+        }
+        $cache = json_decode($this->ReadAttributeString('GroupLights'), true);
+        if (!is_array($cache) || $cache === []) {
+            $cache = array_values(array_map('strval', (array) ($this->Api('GET', 'groups/' . $dev)['lights'] ?? [])));
+            if ($cache !== []) {
+                $this->WriteAttributeString('GroupLights', json_encode($cache));
+            }
+        }
+        return $cache;
+    }
+
+    /**
+     * Aus: Lampen ohne eigenen Stromkreis über Hue ausschalten, dann die Stromkreise aus.
+     * Lampen mit Stromkreis bekommen keinen Hue-Aus-Befehl, damit sie beim nächsten Einschalten am Taster wieder leuchten.
+     */
+    private function PowerOff(): void
+    {
+        $this->WriteAttributeString('Pending', '');
+        $this->SetTimerInterval('PowerWait', 0);
+        $powered = array_merge(...array_column($this->Circuits(), 'lights'));
+        $rest = array_values(array_diff($this->DeviceLights(), $powered));
+        foreach ($rest as $l) {
+            $this->Api('PUT', 'lights/' . $l . '/state', ['on' => false]);
+        }
+        foreach ($this->Circuits() as $c) {
+            if ((bool) GetValue($c['var'])) {
+                RequestAction($c['var'], false);
+            }
+        }
+        $v = $this->Vars();
+        $this->SetIfExists($v, 'state', false);
+    }
+
+    /** Timer: wartet nach dem Einschalten des Stroms, bis die Lampen erreichbar sind (höchstens 25 s), dann den gemerkten Befehl ausführen. */
+    public function PowerWait(): void
+    {
+        $p = json_decode($this->ReadAttributeString('Pending'), true);
+        if (!is_array($p)) {
+            $this->SetTimerInterval('PowerWait', 0);
+            return;
+        }
+        $age = time() - (int) $p['since'];
+        $ready = $age >= 25;
+        if (!$ready && $age >= 2) {
+            $all = $this->Api('GET', 'lights');
+            if (is_array($all) && !isset($all[0]['error'])) {
+                $ready = true;
+                foreach ((array) $p['lights'] as $l) {
+                    if (!($all[$l]['state']['reachable'] ?? false)) {
+                        $ready = false;
+                    }
+                }
+            } elseif ($age >= 8) {
+                $ready = true;   // ohne Bridge-Zugang: feste Wartezeit
+            }
+        }
+        if (!$ready) {
+            return;
+        }
+        $this->SetTimerInterval('PowerWait', 0);
+        $this->WriteAttributeString('Pending', '');
+        $this->SendDebug('Strom', 'Lampen erreichbar nach ' . $age . ' s, führe ' . $p['ident'] . ' aus', 0);
+        $this->Execute((string) $p['ident'], $p['ident'] === 'State' ? true : $p['value']);
+        $this->RefreshHue();
+        $this->Push();
+    }
+
+    private function Execute(string $Ident, mixed $Value): void
+    {
+        $hid = $this->ReadPropertyInteger('HueID');
         $v = $this->Vars();
         switch ($Ident) {
             case 'State':
@@ -563,6 +697,20 @@ class HueLichtKachel extends IPSModuleStrict
         $sw = $this->ReadPropertyInteger('SwitchID');
         $s['on'] = (bool) ($sw > 0 && IPS_VariableExists($sw) ? GetValue($sw) : $get('state'));
         $s['reachable'] = $get('reachable') === null ? true : (bool) $get('reachable');
+        // Stromkreise: ohne Strom ist die Lampe aus (die Hue-Werte bleiben auf dem letzten Stand stehen)
+        $circ = $this->Circuits();
+        $s['circuits'] = count($circ);
+        $s['power'] = true;
+        if ($circ !== []) {
+            $states = array_map(fn ($c) => (bool) GetValue($c['var']), $circ);
+            [$type] = $this->HueDevice();
+            $s['power'] = $type === 'groups' ? in_array(true, $states, true) : !in_array(false, $states, true);
+            if (!$s['power']) {
+                $s['on'] = false;
+                $s['reachable'] = true;
+            }
+        }
+        $s['pending'] = $this->ReadAttributeString('Pending') !== '';
         $s['bri'] = $get('bri');
         $s['color'] = $get('color');
         $s['mode'] = $get('mode');

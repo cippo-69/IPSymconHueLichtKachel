@@ -48,3 +48,14 @@ Der Zugang liegt nur im Attribut der Instanz. Ab 0.4 übernehmen weitere Kacheln
 Geschaltet wird über die Aktionen der Hue-Variablen (`RequestAction`). Die Farbe geht über `PHUE_ColorSetOpt` mit der aktuellen
 Helligkeit, weil `RequestAction` auf `HUE_Color` die Helligkeit aus dem RGB-Wert ableitet. Effekte über `PHUE_EffectSet`
 und `PHUE_AlertSet`. Farben kommen aus dem Modul „Visu Design“ (W5D), falls vorhanden.
+
+## Stromkreise (ab 0.5)
+
+Manche Hue-Lampen hängen hinter einem Schaltaktor (KNX, Z-Wave …) und sind ohne Strom an der Bridge nicht erreichbar.
+In der Liste „Stromkreise“ trägt man je Aktor die Schaltvariable und die davon versorgten Hue-Lampen-IDs ein (leer = alle Lampen des Geräts).
+
+- **Aus** in der Kachel: Lampen ohne Stromkreis bekommen einen Hue-Aus-Befehl, danach werden die Stromkreise ausgeschaltet.
+  Lampen mit Stromkreis bekommen kein Hue-Aus, damit sie beim nächsten Einschalten am Taster wieder leuchten.
+- **Ein** und jede Einstellung (Helligkeit, Farbe, Szene, Effekt) bei ausgeschaltetem Strom: Strom ein, Befehl merken und ausführen,
+  sobald die Lampen wieder erreichbar sind (Abfrage jede Sekunde, höchstens 25 s).
+- Anzeige: ohne Strom gilt die Lampe als aus (kein „nicht erreichbar“); Szenen lassen sich dann nicht speichern.

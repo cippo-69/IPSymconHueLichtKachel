@@ -182,7 +182,8 @@ function render() {
   if (HL.h === null || !HL.busy) { HL.h = cur.h; HL.sat = cur.s; }
 
   var h = '<div class="head"><div class="lamp' + (on ? '' : ' off') + '"></div><div class="t"><b>' + (on ? 'An' : 'Aus') + (on && s.hasBri ? ' · ' + pct(s.bri) + ' %' : '') + '</b>'
-    + '<span class="sub">' + (on ? (s.mode === 1 || !s.hasColor ? (s.kelvin ? s.kelvin + ' K' : '') : 'Farbe') + (s.effect === 'colorloop' ? ' · Farbschleife' : '') : esc(s.name)) + '</span>'
+    + '<span class="sub">' + (s.pending ? 'Strom ein, Lampe startet …' : s.power === false ? 'Strom aus · eine Einstellung schaltet ihn ein'
+      : on ? (s.mode === 1 || !s.hasColor ? (s.kelvin ? s.kelvin + ' K' : '') : 'Farbe') + (s.effect === 'colorloop' ? ' · Farbschleife' : '') : esc(s.name)) + '</span>'
     + (s.reachable ? '' : '<span class="badge">nicht erreichbar</span>') + '</div>'
     + '<button class="tg' + (s.on ? ' on' : '') + '" id="pw" role="switch" aria-checked="' + !!s.on + '" aria-label="Ein/Aus"></button>'
     + (s.backId > 0 && typeof openObject === 'function' ? '<button class="ib" id="back" aria-label="Schließen, zurück zur Seite" title="Schließen">' + TUNE + '</button>' : '')
