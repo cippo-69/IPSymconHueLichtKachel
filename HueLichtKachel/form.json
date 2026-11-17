@@ -4,9 +4,19 @@
         { "type": "SelectObject", "name": "DetailID", "caption": "Einstellungsfenster (Kategorie mit Link auf diese Instanz)", "width": "600px" },
         { "type": "Label", "caption": "Die kleine Kachel (unter 260 px Höhe) ist ein Regler-Knopf und öffnet das Einstellungsfenster. Ohne Kategorie öffnet sie das Visu-Fenster der Hue-Instanz." },
         { "type": "SelectVariable", "name": "SwitchID", "caption": "Ein/Aus über andere Variable (optional, z. B. Fade-Schalter)", "width": "600px" },
+        { "type": "Select", "name": "SceneScope", "caption": "Szene abrufen", "options": [
+            { "caption": "nur diese Lampe (Zustand aus der Szene)", "value": 0 },
+            { "caption": "ganze Szene (alle Lampen des Raums)", "value": 1 }
+        ] },
         { "type": "Label", "caption": "Farben: zentral im Modul „Visu Design“ (Farbkonzept W5x)." }
     ],
-    "actions": [],
+    "actions": [
+        { "type": "Label", "caption": "Szenen der Hue-Bridge: einmalig verbinden. Erst die Link-Taste auf der Bridge drücken, dann innerhalb von 30 s auf „Mit Bridge verbinden“." },
+        { "type": "RowLayout", "items": [
+            { "type": "Button", "caption": "Mit Bridge verbinden", "onClick": "echo HLK_Pair($id);" },
+            { "type": "Button", "caption": "Szenen neu lesen", "onClick": "echo 'Szenen: ' . HLK_ReloadScenes($id);" }
+        ] }
+    ],
     "status": [
         { "code": 102, "icon": "active", "caption": "Aktiv" },
         { "code": 201, "icon": "error", "caption": "Keine Hue-Instanz ausgewählt" }

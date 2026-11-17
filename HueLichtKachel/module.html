@@ -72,6 +72,16 @@ button { font: inherit; }
 .sw button.on { box-shadow: 0 0 0 3px var(--hl-fg); }
 .btn { min-height: 36px; border: 1px solid var(--hl-line); background: none; border-radius: 999px; padding: 4px 14px; cursor: pointer; font-size: 13px; font-weight: 500; touch-action: manipulation; }
 .acts { display: flex; gap: 8px; flex-wrap: wrap; }
+/* Szenen */
+.sc { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 6px; }
+.sc .chip { justify-content: flex-start; text-align: left; min-height: 40px; }
+.sc .chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip.sel { box-shadow: inset 0 0 0 2px var(--hl-accent); }
+#hl .btn.solid { background: var(--hl-accent); border-color: var(--hl-accent); color: var(--hl-on); font-weight: 600; }
+#hl .msg { font-size: 12px; color: var(--hl-muted); }
+.nw { display: flex; gap: 8px; align-items: center; }
+.nw input { flex: 1; min-width: 0; font: inherit; font-size: 16px; min-height: 40px; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--hl-line); background: var(--hl-bg2); color: var(--hl-fg); }
+.nw input:focus { outline: none; border-color: var(--hl-accent); }
 
 /* kleine Kachel: Regler-Knopf, öffnet das Einstellungsfenster */
 body.knob #hl { padding: 38px 8px 6px; align-items: center; justify-content: center; gap: 4px; overflow: hidden; }
@@ -85,7 +95,7 @@ body.short .knobval { display: none; }
 </style>
 <div id="hl"></div>
 <script>
-var HL = { s: null, busy: false, pending: false, tab: null, h: null, sat: null, last: 0, timer: null };
+var HL = { s: null, busy: false, pending: false, tab: null, h: null, sat: null, last: 0, timer: null, confirm: '', newOpen: false, newVal: '' };
 var KNOB_H = 260;
 var TUNE = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></svg>';
 var WHITES = [[2200, 'Kerze'], [2700, 'Warm'], [3000, 'Gemütlich'], [4000, 'Neutral'], [5000, 'Hell'], [6500, 'Tageslicht']];
@@ -172,6 +182,7 @@ function render() {
     + (s.reachable ? '' : '<span class="badge">nicht erreichbar</span>') + '</div>'
     + '<button class="tg' + (s.on ? ' on' : '') + '" id="pw" role="switch" aria-checked="' + !!s.on + '" aria-label="Ein/Aus"></button></div>';
 
+  h += sceneCard(s);
   if (s.hasBri) {
     h += '<div class="card"><div class="row"><span class="lbl">Helligkeit</span><span class="val" id="vb">' + pct(s.bri) + ' %</span></div>'
       + '<input class="sl" type="range" id="bri" min="1" max="254" value="' + (s.bri || 1) + '" aria-label="Helligkeit" style="--tr:linear-gradient(90deg,#222,' + lc + ');--th:' + lc + '"></div>';
@@ -214,6 +225,62 @@ function render() {
   bind();
 }
 
+/* Szenen der Hue-Bridge: abrufen, aktuellen Zustand in die gewählte Szene speichern, neue Szene anlegen */
+function prefix(list) {
+  // gemeinsamen Raumnamen („Büro “) in den Knöpfen weglassen
+  if (list.length < 2) return '';
+  var p = list[0].name.split(' ')[0] + ' ';
+  return list.every(function (x) { return x.name.indexOf(p) === 0 && x.name.length > p.length; }) ? p : '';
+}
+function sceneSwatch(x) {
+  if (!x.on) return 'var(--hl-line)';
+  return x.color !== null ? '#' + ('00000' + x.color.toString(16)).slice(-6) : kelvinRgb(x.kelvin || 2700);
+}
+function sceneCard(s) {
+  if (!s.paired) return '<div class="card"><span class="lbl">Szenen</span><span class="msg">Noch nicht mit der Hue-Bridge verbunden: in der Konsole an der Instanz „Mit Bridge verbinden“ (vorher Link-Taste der Bridge drücken).</span></div>';
+  var list = s.scenes || [], p = prefix(list), sel = null;
+  list.forEach(function (x) { if (x.id === s.sceneSel) sel = x; });
+  var act = list.filter(function (x) { return x.active; });
+  if (!sel && act.length) sel = act[0];
+  var h = '<div class="card"><div class="row"><span class="lbl">Szenen</span><span class="val">' + (act.length ? esc(act[0].name.slice(p.length)) : 'keine aktiv') + '</span></div><div class="sc">';
+  list.forEach(function (x) {
+    h += '<button class="chip' + (x.active ? ' on' : '') + (sel && sel.id === x.id && !x.active ? ' sel' : '') + '" data-scene="' + esc(x.id) + '" style="' + (x.active ? 'background:var(--hl-accent)' : '') + '"><i style="--c:' + sceneSwatch(x) + '"></i><span>' + esc(x.name.slice(p.length)) + '</span></button>';
+  });
+  h += '</div>';
+  if (!list.length) h += '<span class="msg">Keine Szenen mit dieser Lampe gefunden.</span>';
+  if (HL.confirm && sel && HL.confirm === sel.id) {
+    h += '<div class="row"><span class="msg">„' + esc(sel.name) + '“ mit dem aktuellen Zustand dieser Lampe überschreiben?</span><div class="acts"><button class="btn" data-sc-no="1">Abbrechen</button><button class="btn solid" data-sc-yes="' + esc(sel.id) + '">Speichern</button></div></div>';
+  } else if (HL.newOpen) {
+    h += '<div class="nw"><input id="nwn" type="text" maxlength="32" autocomplete="off" placeholder="Name der neuen Szene" value="' + esc(HL.newVal) + '" aria-label="Name der neuen Szene"><button class="btn solid" id="nwok">Anlegen</button></div>'
+      + '<div class="row"><span class="msg">Übernimmt den aktuellen Zustand aller Lampen im Raum.</span><button class="btn" id="nwno">Abbrechen</button></div>';
+  } else {
+    h += '<div class="acts">' + (sel ? '<button class="btn" data-sc-save="' + esc(sel.id) + '">In „' + esc(sel.name.slice(p.length)) + '“ speichern</button>' : '') + '<button class="btn" id="nwopen">Neue Szene</button></div>';
+  }
+  if (s.sceneMsg) h += '<span class="msg">' + esc(s.sceneMsg) + '</span>';
+  return h + '</div>';
+}
+function bindScenes() {
+  document.querySelectorAll('[data-scene]').forEach(function (b) { b.onclick = function () { HL.confirm = ''; send('Scene', b.getAttribute('data-scene')); }; });
+  document.querySelectorAll('[data-sc-save]').forEach(function (b) {
+    b.onclick = function () { HL.confirm = b.getAttribute('data-sc-save'); render(); setTimeout(function () { if (HL.confirm) { HL.confirm = ''; render(); } }, 8000); };
+  });
+  document.querySelectorAll('[data-sc-yes]').forEach(function (b) { b.onclick = function () { var id = b.getAttribute('data-sc-yes'); HL.confirm = ''; send('SceneSave', id); render(); }; });
+  document.querySelectorAll('[data-sc-no]').forEach(function (b) { b.onclick = function () { HL.confirm = ''; render(); }; });
+  var o = document.getElementById('nwopen');
+  if (o) o.onclick = function () { HL.newOpen = true; HL.newVal = ''; render(); var i = document.getElementById('nwn'); if (i) i.focus(); };
+  var inp = document.getElementById('nwn');
+  if (inp) {
+    inp.onfocus = function () { HL.busy = true; };
+    inp.onblur = function () { HL.busy = false; HL.newVal = inp.value; if (HL.pending) { HL.pending = false; setTimeout(render, 200); } };
+    inp.oninput = function () { HL.newVal = inp.value; };
+    inp.onkeydown = function (e) { if (e.key === 'Enter') document.getElementById('nwok').click(); };
+  }
+  var ok = document.getElementById('nwok');
+  if (ok) ok.onclick = function () { var n = (HL.newVal || '').trim(); if (!n) return; HL.newOpen = false; HL.busy = false; send('SceneNew', n); render(); };
+  var no = document.getElementById('nwno');
+  if (no) no.onclick = function () { HL.newOpen = false; HL.busy = false; render(); };
+}
+
 /* Regler: während des Ziehens höchstens alle 350 ms senden, beim Loslassen den Endwert */
 function slider(id, onMove, onSend) {
   var r = document.getElementById(id);
@@ -236,6 +303,7 @@ function slider(id, onMove, onSend) {
 }
 function bind() {
   var s = HL.s;
+  bindScenes();
   document.getElementById('pw').onclick = function () { send('State', !s.on); };
   slider('bri', function (v) { document.getElementById('vb').textContent = pct(v) + ' %'; }, function (v) { send('Brightness', v); });
   slider('kel', function (v, r) { document.getElementById('vk').textContent = v + ' K'; r.style.setProperty('--th', kelvinRgb(v)); }, function (v) { send('Kelvin', v); });
