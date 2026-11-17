@@ -1,0 +1,14 @@
+{
+    "id": "{7F459397-01AB-421C-BA99-87C3C04C77E5}",
+    "name": "HueLichtKachel",
+    "type": 3,
+    "vendor": "",
+    "aliases": [
+        "Hue Licht Kachel"
+    ],
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "HLK",
+    "url": "https://github.com/cippo-69/IPSymconHueLichtKachel"
+}
