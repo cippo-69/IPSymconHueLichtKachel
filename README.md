@@ -57,5 +57,5 @@ In der Liste „Stromkreise“ trägt man je Aktor die Schaltvariable und die da
 - **Aus** in der Kachel: Lampen ohne Stromkreis bekommen einen Hue-Aus-Befehl, danach werden die Stromkreise ausgeschaltet.
   Lampen mit Stromkreis bekommen kein Hue-Aus, damit sie beim nächsten Einschalten am Taster wieder leuchten.
 - **Ein** und jede Einstellung (Helligkeit, Farbe, Szene, Effekt) bei ausgeschaltetem Strom: Strom ein, Befehl merken und ausführen,
-  sobald die Lampen wieder erreichbar sind (Abfrage jede Sekunde, höchstens 25 s).
+  sobald die Lampen wieder erreichbar sind (frühestens nach 4 s, höchstens 25 s; „reachable“ der Bridge hinkt beim Abschalten nach). Der Befehl wird nach 3 s einmal wiederholt.
 - Anzeige: ohne Strom gilt die Lampe als aus (kein „nicht erreichbar“); Szenen lassen sich dann nicht speichern.

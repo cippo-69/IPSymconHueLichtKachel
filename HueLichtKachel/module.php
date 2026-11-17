@@ -424,6 +424,11 @@ class HueLichtKachel extends IPSModuleStrict
                 $this->Push();
                 return;
             }
+            // Strom ist an: eine noch ausstehende Wiederholung darf den neuen Befehl nicht überschreiben
+            if ($this->ReadAttributeString('Pending') !== '' && !in_array($Ident, ['Effect', 'Alert'], true)) {
+                $this->WriteAttributeString('Pending', '');
+                $this->SetTimerInterval('PowerWait', 0);
+            }
         }
         $this->Execute($Ident, $Value);
     }
@@ -498,8 +503,21 @@ class HueLichtKachel extends IPSModuleStrict
             return;
         }
         $age = time() - (int) $p['since'];
+        if (!empty($p['repeat'])) {
+            // zweiter Durchgang 3 s nach dem ersten: Befehl wiederholen, falls die Lampe beim ersten noch hochfuhr
+            if ($age < 3) {
+                return;
+            }
+            $this->SetTimerInterval('PowerWait', 0);
+            $this->WriteAttributeString('Pending', '');
+            $this->Execute((string) $p['ident'], $p['ident'] === 'State' ? true : $p['value']);
+            $this->RefreshHue();
+            $this->Push();
+            return;
+        }
         $ready = $age >= 25;
-        if (!$ready && $age >= 2) {
+        // „reachable“ der Bridge hinkt beim Abschalten minutenlang nach; deshalb mindestens 4 s nach dem Einschalten warten
+        if (!$ready && $age >= 4) {
             $all = $this->Api('GET', 'lights');
             if (is_array($all) && !isset($all[0]['error'])) {
                 $ready = true;
@@ -515,10 +533,18 @@ class HueLichtKachel extends IPSModuleStrict
         if (!$ready) {
             return;
         }
-        $this->SetTimerInterval('PowerWait', 0);
-        $this->WriteAttributeString('Pending', '');
         $this->SendDebug('Strom', 'Lampen erreichbar nach ' . $age . ' s, führe ' . $p['ident'] . ' aus', 0);
         $this->Execute((string) $p['ident'], $p['ident'] === 'State' ? true : $p['value']);
+        // Wiederholung vormerken (Effekte und Blinken nicht, die sollen nicht doppelt laufen)
+        if (in_array($p['ident'], ['State', 'Brightness', 'Kelvin', 'Color', 'Scene'], true)) {
+            $this->WriteAttributeString('Pending', json_encode($p + ['repeat' => true], JSON_UNESCAPED_UNICODE));
+            $p2 = json_decode($this->ReadAttributeString('Pending'), true);
+            $p2['since'] = time();
+            $this->WriteAttributeString('Pending', json_encode($p2, JSON_UNESCAPED_UNICODE));
+        } else {
+            $this->SetTimerInterval('PowerWait', 0);
+            $this->WriteAttributeString('Pending', '');
+        }
         $this->RefreshHue();
         $this->Push();
     }
