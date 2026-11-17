@@ -272,7 +272,11 @@ function bindScenes() {
   if (inp) {
     inp.onfocus = function () { HL.busy = true; };
     inp.onblur = function () { HL.busy = false; HL.newVal = inp.value; if (HL.pending) { HL.pending = false; setTimeout(render, 200); } };
-    inp.oninput = function () { HL.newVal = inp.value; };
+    inp.oninput = function () {
+      // Hue erlaubt höchstens 32 Byte (UTF-8), Umlaute zählen doppelt
+      while (inp.value && unescape(encodeURIComponent(inp.value)).length > 32) inp.value = inp.value.slice(0, -1);
+      HL.newVal = inp.value;
+    };
     inp.onkeydown = function (e) { if (e.key === 'Enter') document.getElementById('nwok').click(); };
   }
   var ok = document.getElementById('nwok');

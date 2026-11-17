@@ -190,7 +190,7 @@ class HueLichtKachel extends IPSModuleStrict
     /** Neue Szene im Raum der Lampe anlegen; sie übernimmt den aktuellen Zustand aller Lampen des Raums (wie „Szene speichern“ in der App). */
     private function SceneNew(string $name): void
     {
-        $name = trim(mb_substr($name, 0, 32));
+        $name = trim(mb_strcut(trim($name), 0, 32, 'UTF-8'));   // Hue: höchstens 32 Byte (Umlaute zählen doppelt)
         if ($name === '') {
             return;
         }
