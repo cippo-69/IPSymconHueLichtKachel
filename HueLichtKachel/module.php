@@ -311,7 +311,8 @@ class HueLichtKachel extends IPSModuleStrict
         curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_CONNECTTIMEOUT => 3, CURLOPT_TIMEOUT => 6, CURLOPT_CUSTOMREQUEST => $method,
             CURLOPT_SSL_VERIFYPEER => false, CURLOPT_SSL_VERIFYHOST => 0]);
         if ($method !== 'GET') {
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
+            // Umlaute unmaskiert senden: die Bridge (v1) übernimmt ü sonst wörtlich in den Namen
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
         }
         $res = curl_exec($ch);
         curl_close($ch);
