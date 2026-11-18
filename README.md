@@ -47,7 +47,7 @@ Der Zugang liegt nur im Attribut der Instanz. Ab 0.4 übernehmen weitere Kacheln
 
 Geschaltet wird über die Aktionen der Hue-Variablen (`RequestAction`). Die Farbe geht über `PHUE_ColorSetOpt` mit der aktuellen
 Helligkeit, weil `RequestAction` auf `HUE_Color` die Helligkeit aus dem RGB-Wert ableitet. Effekte über `PHUE_EffectSet`
-und `PHUE_AlertSet`. Farben kommen aus dem Modul „Visu Design“ (W5D), falls vorhanden.
+und `PHUE_AlertSet`. Farben, Layout und Hell/Dunkel-Erkennung kommen aus dem Modul „Visu Design“ ab Version 1.6 (`W5D_GetCSS`, `W5D_GetTileCSS`, `W5D_GetTileJS`); im module.html steht nur CSS für Sonderelemente (Kopf mit Lampe, Farbfelder, Regler-Knopf der kleinen Kachel) mit Farben aus Visu Design.
 
 ## Stromkreise (ab 0.5)
 
