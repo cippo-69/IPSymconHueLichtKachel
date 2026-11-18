@@ -1,103 +1,21 @@
+<!-- Layout und Farben kommen aus „Visu Design“ (W5D_GetCSS + W5D_GetTileCSS, Bausteine laut README).
+     Hier nur Sonderelemente (Kopf mit Lampe, Farbfelder, Regler-Knopf der kleinen Kachel), ausschließlich mit Farben aus Visu Design. -->
 <style>
-:root {
-  --hl-bg: rgba(0,0,0,.045);
-  --hl-bg2: rgba(0,0,0,.075);
-  --hl-line: rgba(0,0,0,.12);
-  --hl-muted: rgba(0,0,0,.52);
-  --hl-top: 58px;          /* Platz für Titel und Vergrößern-Symbol der Symcon-Kachel */
-}
-/* Farben aus dem Modul „Visu Design“ (--w5-*); die Werte nach dem Komma gelten ohne Design-Instanz */
-body {
-  --hl-accent: var(--w5-accent, #2F6B4F);
-  --hl-bad: var(--w5-alarm, #C8321F);
-  --hl-on: var(--w5-on, #fff);
-  --hl-fg: var(--w5-fg, #1E2224);
-}
-body.dark {
-  --hl-accent: var(--w5-accent, #74B892);
-  --hl-bad: var(--w5-alarm, #FF5A47);
-  --hl-on: var(--w5-on, #1E2224);
-  --hl-fg: var(--w5-fg, #F1F0EB);
-  --hl-bg: rgba(255,255,255,.10);
-  --hl-bg2: rgba(255,255,255,.15);
-  --hl-line: rgba(255,255,255,.16);
-  --hl-muted: rgba(255,255,255,.6);
-}
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { margin: 0; height: 100%; overflow: hidden; background: transparent; }
-body { font-family: 'Poppins', 'Work Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; line-height: 1.35; }
-button { font: inherit; }
-#hl, #hl div, #hl span, #hl b, #hl button { color: var(--hl-fg); }
-#hl .lbl, #hl .sub, #hl .val { color: var(--hl-muted); }
-#hl .seg button.on, #hl .badge, #hl .chip.on { color: var(--hl-on); }
-#hl { position: absolute; inset: 0; padding: var(--hl-top) 16px 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-.lbl { font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; }
-.sub { font-size: 12px; }
-.val { font-size: 12px; font-variant-numeric: tabular-nums; }
-
-/* Kopf */
-.head { display: flex; align-items: center; gap: 14px; }
-.lamp { width: 52px; height: 52px; border-radius: 50%; flex: none; background: var(--lc, #888); box-shadow: 0 0 0 4px var(--hl-bg2), 0 0 22px 2px var(--lg, transparent); transition: background .3s, box-shadow .3s; }
-.lamp.off { background: var(--hl-line); box-shadow: 0 0 0 4px var(--hl-bg2); }
-.head .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.head .t b { font-size: 22px; font-weight: 500; line-height: 1.15; }
-.badge { align-self: flex-start; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--hl-bad); }
-
-/* Schalter */
-.tg { position: relative; width: 56px; height: 32px; border-radius: 16px; background: var(--hl-line); border: 0; cursor: pointer; padding: 0; flex: none; touch-action: manipulation; }
-.tg::after { content: ""; position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: left .15s; }
-.tg.on { background: var(--hl-accent); }
-.tg.on::after { left: 27px; }
-
-/* Abschnitte */
-.card { background: var(--hl-bg); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
-.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 32px; }
-.card.dim { opacity: .55; }
-
-/* Schieberegler mit Farbverlauf */
-.sl { -webkit-appearance: none; appearance: none; width: 100%; height: 36px; border-radius: 18px; margin: 0; background: var(--tr, var(--hl-bg2)); outline: none; cursor: pointer; touch-action: none; box-shadow: inset 0 0 0 1px var(--hl-line); }
-.sl::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 30px; height: 30px; border-radius: 50%; background: var(--th, #fff); border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.45); }
-.sl::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: var(--th, #fff); border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.45); }
-.sl::-moz-range-track { background: transparent; }
-
-/* Weiß / Farbe */
-.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--hl-bg2); border-radius: 12px; padding: 4px; }
-.seg button { border: 0; background: none; border-radius: 9px; min-height: 38px; cursor: pointer; font-size: 13px; touch-action: manipulation; }
-.seg button.on { background: var(--hl-accent); font-weight: 600; }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip { display: inline-flex; align-items: center; gap: 7px; border: 0; cursor: pointer; font-size: 12px; min-height: 34px; padding: 4px 12px 4px 6px; border-radius: 999px; background: var(--hl-bg2); touch-action: manipulation; }
-.chip i { width: 22px; height: 22px; border-radius: 50%; background: var(--c); box-shadow: inset 0 0 0 1px rgba(0,0,0,.15); }
-.sw { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 8px; }
-.sw button { aspect-ratio: 1; min-height: 38px; border-radius: 50%; border: 0; cursor: pointer; background: var(--c); box-shadow: inset 0 0 0 1px rgba(0,0,0,.15); touch-action: manipulation; }
-.sw button.on { box-shadow: 0 0 0 3px var(--hl-fg); }
-.btn { min-height: 36px; border: 1px solid var(--hl-line); background: none; border-radius: 999px; padding: 4px 14px; cursor: pointer; font-size: 13px; font-weight: 500; touch-action: manipulation; }
-.acts { display: flex; gap: 8px; flex-wrap: wrap; }
-/* Szenen */
-.sc { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 6px; }
-.sc .chip { justify-content: flex-start; text-align: left; min-height: 40px; }
-.sc .chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.chip.sel { box-shadow: inset 0 0 0 2px var(--hl-accent); }
-#hl .btn.solid { background: var(--hl-accent); border-color: var(--hl-accent); color: var(--hl-on); font-weight: 600; }
-#hl .msg { font-size: 12px; color: var(--hl-muted); }
-.nw { display: flex; gap: 8px; align-items: center; }
-.nw input { flex: 1; min-width: 0; font: inherit; font-size: 16px; min-height: 40px; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--hl-line); background: var(--hl-bg2); color: var(--hl-fg); }
-.nw input:focus { outline: none; border-color: var(--hl-accent); }
-
-/* Regler-Knopf im Fenster: schließt es (zurück zur Seite mit dem Lampen-Button) */
-.ib { width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--hl-accent); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0; flex: none; touch-action: manipulation; }
-#hl .ib, #hl .ib svg { color: var(--hl-on); }
-.ib svg { width: 20px; height: 20px; }
-/* kleine Kachel: Regler-Knopf, öffnet das Einstellungsfenster */
+#hl .head { align-items: center; gap: 14px; }
+#hl .head .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+#hl .head .t b { font-size: 22px; font-weight: 500; line-height: 1.15; }
+#hl .head .badge { align-self: flex-start; }
+#hl .lamp { width: 52px; height: 52px; border-radius: 50%; flex: none; background: var(--lc, var(--w5t-muted)); box-shadow: 0 0 0 4px var(--w5t-bg2), 0 0 22px 2px var(--lg, transparent); transition: background .3s, box-shadow .3s; }
+#hl .lamp.off { background: var(--w5t-line); box-shadow: 0 0 0 4px var(--w5t-bg2); }
+#hl .sw { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 8px; }
+#hl .sw button { aspect-ratio: 1; min-height: 38px; border-radius: 50%; border: 0; cursor: pointer; background: var(--c); box-shadow: inset 0 0 0 1px var(--w5t-line); }
+#hl .sw button.on { box-shadow: 0 0 0 3px var(--w5t-fg); }
 body.knob #hl { padding: 38px 8px 6px; align-items: center; justify-content: center; gap: 4px; overflow: hidden; }
-.knobbtn { width: min(64px, 52vh); height: min(64px, 52vh); border-radius: 50%; border: 0; padding: 0; cursor: pointer; display: grid; place-items: center; background: var(--hl-bg2);
-  box-shadow: 0 0 0 3px var(--lc, var(--hl-line)), 0 0 18px 0 var(--lg, transparent); touch-action: manipulation; }
-.knobbtn svg { width: 55%; height: 55%; }
-.knobbtn.off { box-shadow: 0 0 0 3px var(--hl-line); }
-body.knob .val { font-size: 12px; }
+#hl .knobbtn { width: min(64px, 52vh); height: min(64px, 52vh); border-radius: 50%; border: 0; padding: 0; cursor: pointer; display: grid; place-items: center; background: var(--w5t-bg2); box-shadow: 0 0 0 3px var(--lc, var(--w5t-line)), 0 0 18px 0 var(--lg, transparent); }
+#hl .knobbtn svg { width: 55%; height: 55%; }
+#hl .knobbtn.off { box-shadow: 0 0 0 3px var(--w5t-line); }
 body.short .knobval { display: none; }
-@media (max-width: 420px) { #hl { padding-left: 12px; padding-right: 12px; } .card { padding: 12px; } }
-</style>
-<div id="hl"></div>
+</style><div id="hl" class="w5t fill"></div>
 <script>
 var HL = { s: null, busy: false, pending: false, tab: null, h: null, sat: null, last: 0, timer: null, confirm: '', newOpen: false, newVal: '' };
 var KNOB_H = 260;
@@ -148,12 +66,9 @@ function lampColor(s) {
 function pct(b) { return Math.max(1, Math.round((b || 0) / 254 * 100)); }
 
 /* Hell/Dunkel wie die übrigen Kacheln: Schriftfarbe der Visu, sonst Systemeinstellung */
-function theme() {
-  var b = document.body, m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(getComputedStyle(b).color || ''), dark;
-  if (m) dark = (0.2126 * m[1] + 0.7152 * m[2] + 0.0722 * m[3]) / 255 > 0.5;
-  else dark = !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  b.classList.toggle('dark', dark);
-}
+/* Hell/Dunkel übernimmt W5D_GetTileJS (w5tTheme); ohne Design-Modul bleibt der helle Modus */
+function theme() { if (typeof w5tTheme === 'function') w5tTheme(); }
+
 function canOpen() { return typeof openObject === 'function' && HL.s && (HL.s.detailId > 0 || HL.s.hueId > 0); }
 
 function render() {
@@ -170,7 +85,7 @@ function render() {
 
   if (knob) {
     el.innerHTML = '<button class="knobbtn' + (on ? '' : ' off') + '" id="open" aria-label="Einstellungen ' + esc(s.name) + '" title="Einstellungen">' + TUNE + '</button>'
-      + '<span class="val knobval">' + (!s.reachable ? 'nicht erreichbar' : on ? (s.hasBri ? pct(s.bri) + ' %' : 'An') : 'Aus') + '</span>';
+      + '<span class="sub num knobval">' + (!s.reachable ? 'nicht erreichbar' : on ? (s.hasBri ? pct(s.bri) + ' %' : 'An') : 'Aus') + '</span>';
     document.getElementById('open').onclick = function () { try { openObject(s.detailId > 0 ? s.detailId : s.hueId); } catch (e) { /* nichts */ } };
     return;
   }
@@ -191,8 +106,8 @@ function render() {
 
   h += sceneCard(s);
   if (s.hasBri) {
-    h += '<div class="card"><div class="row"><span class="lbl">Helligkeit</span><span class="val" id="vb">' + pct(s.bri) + ' %</span></div>'
-      + '<input class="sl" type="range" id="bri" min="1" max="254" value="' + (s.bri || 1) + '" aria-label="Helligkeit" style="--tr:linear-gradient(90deg,#222,' + lc + ');--th:' + lc + '"></div>';
+    h += '<div class="card"><div class="row"><span class="lbl">Helligkeit</span><span class="sub num" id="vb">' + pct(s.bri) + ' %</span></div>'
+      + '<input class="rng" type="range" id="bri" min="1" max="254" value="' + (s.bri || 1) + '" aria-label="Helligkeit" style="--tr:linear-gradient(90deg,#222,' + lc + ');--th:' + lc + '"></div>';
   }
   if (s.hasColor || s.hasCt) {
     h += '<div class="card">';
@@ -200,22 +115,22 @@ function render() {
     if (tab === 'white') {
       var k = s.kelvin || 2700, grad = [];
       for (var i = 0; i <= 6; i++) grad.push(kelvinRgb(s.kmin + (s.kmax - s.kmin) * i / 6));
-      h += '<div class="row"><span class="lbl">Farbtemperatur</span><span class="val" id="vk">' + k + ' K</span></div>'
-        + '<input class="sl" type="range" id="kel" min="' + s.kmin + '" max="' + s.kmax + '" step="50" value="' + k + '" aria-label="Farbtemperatur" style="--tr:linear-gradient(90deg,' + grad.join(',') + ');--th:' + kelvinRgb(k) + '">'
+      h += '<div class="row"><span class="lbl">Farbtemperatur</span><span class="sub num" id="vk">' + k + ' K</span></div>'
+        + '<input class="rng" type="range" id="kel" min="' + s.kmin + '" max="' + s.kmax + '" step="50" value="' + k + '" aria-label="Farbtemperatur" style="--tr:linear-gradient(90deg,' + grad.join(',') + ');--th:' + kelvinRgb(k) + '">'
         + '<div class="chips">';
       WHITES.forEach(function (w) {
         if (w[0] < s.kmin - 50 || w[0] > s.kmax + 50) return;
         var act = s.mode === 1 && Math.abs(k - w[0]) < 60;
-        h += '<button class="chip' + (act ? ' on' : '') + '" data-k="' + w[0] + '" style="' + (act ? 'background:var(--hl-accent)' : '') + '"><i style="--c:' + kelvinRgb(w[0]) + '"></i>' + w[1] + '</button>';
+        h += '<button class="chip' + (act ? ' on' : '') + '" data-k="' + w[0] + '"><i style="--c:' + kelvinRgb(w[0]) + '"></i>' + w[1] + '</button>';
       });
       h += '</div>';
     } else {
       var hues = [];
       for (var j = 0; j <= 12; j++) hues.push(hsv(j * 30, 1, 1));
-      h += '<div class="row"><span class="lbl">Farbton</span><span class="val" id="vh">' + HL.h + '°</span></div>'
-        + '<input class="sl" type="range" id="hue" min="0" max="359" value="' + HL.h + '" aria-label="Farbton" style="--tr:linear-gradient(90deg,' + hues.join(',') + ');--th:' + hsv(HL.h, 1, 1) + '">'
-        + '<div class="row"><span class="lbl">Sättigung</span><span class="val" id="vs">' + Math.round(HL.sat * 100) + ' %</span></div>'
-        + '<input class="sl" type="range" id="sat" min="0" max="100" value="' + Math.round(HL.sat * 100) + '" aria-label="Sättigung" style="--tr:linear-gradient(90deg,#fff,' + hsv(HL.h, 1, 1) + ');--th:' + hsv(HL.h, HL.sat, 1) + '">'
+      h += '<div class="row"><span class="lbl">Farbton</span><span class="sub num" id="vh">' + HL.h + '°</span></div>'
+        + '<input class="rng" type="range" id="hue" min="0" max="359" value="' + HL.h + '" aria-label="Farbton" style="--tr:linear-gradient(90deg,' + hues.join(',') + ');--th:' + hsv(HL.h, 1, 1) + '">'
+        + '<div class="row"><span class="lbl">Sättigung</span><span class="sub num" id="vs">' + Math.round(HL.sat * 100) + ' %</span></div>'
+        + '<input class="rng" type="range" id="sat" min="0" max="100" value="' + Math.round(HL.sat * 100) + '" aria-label="Sättigung" style="--tr:linear-gradient(90deg,#fff,' + hsv(HL.h, 1, 1) + ');--th:' + hsv(HL.h, HL.sat, 1) + '">'
         + '<div class="sw">';
       COLORS.forEach(function (c) {
         var act = s.mode === 0 && Math.abs(cur.h - c[0]) < 6 && Math.abs(cur.s - c[1]) < .08;
@@ -240,30 +155,30 @@ function prefix(list) {
   return list.every(function (x) { return x.name.indexOf(p) === 0 && x.name.length > p.length; }) ? p : '';
 }
 function sceneSwatch(x) {
-  if (!x.on) return 'var(--hl-line)';
+  if (!x.on) return 'var(--w5t-line)';
   return x.color !== null ? '#' + ('00000' + x.color.toString(16)).slice(-6) : kelvinRgb(x.kelvin || 2700);
 }
 function sceneCard(s) {
-  if (!s.paired) return '<div class="card"><span class="lbl">Szenen</span><span class="msg">Noch nicht mit der Hue-Bridge verbunden: in der Konsole an der Instanz „Mit Bridge verbinden“ (vorher Link-Taste der Bridge drücken).</span></div>';
+  if (!s.paired) return '<div class="card"><span class="lbl">Szenen</span><span class="hint">Noch nicht mit der Hue-Bridge verbunden: in der Konsole an der Instanz „Mit Bridge verbinden“ (vorher Link-Taste der Bridge drücken).</span></div>';
   var list = s.scenes || [], p = prefix(list), sel = null;
   list.forEach(function (x) { if (x.id === s.sceneSel) sel = x; });
   var act = list.filter(function (x) { return x.active; });
   if (!sel && act.length) sel = act[0];
-  var h = '<div class="card"><div class="row"><span class="lbl">Szenen</span><span class="val">' + (act.length ? esc(act[0].name.slice(p.length)) : 'keine aktiv') + '</span></div><div class="sc">';
+  var h = '<div class="card"><div class="row"><span class="lbl">Szenen</span><span class="sub num">' + (act.length ? esc(act[0].name.slice(p.length)) : 'keine aktiv') + '</span></div><div class="grid">';
   list.forEach(function (x) {
-    h += '<button class="chip' + (x.active ? ' on' : '') + (sel && sel.id === x.id && !x.active ? ' sel' : '') + '" data-scene="' + esc(x.id) + '" style="' + (x.active ? 'background:var(--hl-accent)' : '') + '"><i style="--c:' + sceneSwatch(x) + '"></i><span>' + esc(x.name.slice(p.length)) + '</span></button>';
+    h += '<button class="chip' + (x.active ? ' on' : '') + (sel && sel.id === x.id && !x.active ? ' sel' : '') + '" data-scene="' + esc(x.id) + '"><i style="--c:' + sceneSwatch(x) + '"></i><span>' + esc(x.name.slice(p.length)) + '</span></button>';
   });
   h += '</div>';
-  if (!list.length) h += '<span class="msg">Keine Szenen mit dieser Lampe gefunden.</span>';
+  if (!list.length) h += '<span class="hint">Keine Szenen mit dieser Lampe gefunden.</span>';
   if (HL.confirm && sel && HL.confirm === sel.id) {
-    h += '<div class="row"><span class="msg">„' + esc(sel.name) + '“ mit dem aktuellen Zustand dieser Lampe überschreiben?</span><div class="acts"><button class="btn" data-sc-no="1">Abbrechen</button><button class="btn solid" data-sc-yes="' + esc(sel.id) + '">Speichern</button></div></div>';
+    h += '<div class="row"><span class="hint">„' + esc(sel.name) + '“ mit dem aktuellen Zustand dieser Lampe überschreiben?</span><div class="acts"><button class="btn" data-sc-no="1">Abbrechen</button><button class="btn acc solid" data-sc-yes="' + esc(sel.id) + '">Speichern</button></div></div>';
   } else if (HL.newOpen) {
-    h += '<div class="nw"><input id="nwn" type="text" maxlength="32" autocomplete="off" placeholder="Name der neuen Szene" value="' + esc(HL.newVal) + '" aria-label="Name der neuen Szene"><button class="btn solid" id="nwok">Anlegen</button></div>'
-      + '<div class="row"><span class="msg">Übernimmt den aktuellen Zustand aller Lampen im Raum.</span><button class="btn" id="nwno">Abbrechen</button></div>';
+    h += '<div class="inrow"><input id="nwn" type="text" maxlength="32" autocomplete="off" placeholder="Name der neuen Szene" value="' + esc(HL.newVal) + '" aria-label="Name der neuen Szene"><button class="btn acc solid" id="nwok">Anlegen</button></div>'
+      + '<div class="row"><span class="hint">Übernimmt den aktuellen Zustand aller Lampen im Raum.</span><button class="btn" id="nwno">Abbrechen</button></div>';
   } else {
     h += '<div class="acts">' + (sel ? '<button class="btn" data-sc-save="' + esc(sel.id) + '">In „' + esc(sel.name.slice(p.length)) + '“ speichern</button>' : '') + '<button class="btn" id="nwopen">Neue Szene</button></div>';
   }
-  if (s.sceneMsg) h += '<span class="msg">' + esc(s.sceneMsg) + '</span>';
+  if (s.sceneMsg) h += '<span class="hint">' + esc(s.sceneMsg) + '</span>';
   return h + '</div>';
 }
 function bindScenes() {
